@@ -68,16 +68,28 @@ class TrafficSignal:
         self.screen = displayio.Group()
         display.root_group = self.screen
 
-        # drop an empty label onto the screen stack so it is popped off the
-        # first time set_text is called
-        self.screen.append(
-            label.Label(terminalio.FONT, text="", scale=6, color=0xFFFFFF, x=50, y=32)
-        )
-
     def set_text(self, text):
-        self.screen.pop()
+        character_width = 6
+        scale = 6
+        text_width = len(text) * character_width * scale
+
+        x_position = (DISPLAY_WIDTH // 2) - (text_width // 2)
+        # ensure the position is not negative
+        if x_position < DISPLAY_BORDER:
+            x_position = DISPLAY_BORDER
+
+        y_position = DISPLAY_HEIGHT // 2
+
+        if len(self.screen) > 0:
+            self.screen.pop()
+
         text_area = label.Label(
-            terminalio.FONT, text=text, scale=6, color=0xFFFFFF, x=50, y=32
+            terminalio.FONT,
+            text=text,
+            scale=scale,
+            color=0xFFFFFF,
+            x=x_position,
+            y=y_position,
         )
         self.screen.append(text_area)
 
