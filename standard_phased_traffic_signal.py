@@ -1,10 +1,15 @@
+import adafruit_displayio_sh1107
 import board
 import digitalio
+import displayio
 import neopixel
+import terminalio
 import time
+from adafruit_display_text import label
 from adafruit_led_animation.color import RED
 from adafruit_led_animation.color import AMBER
 from adafruit_led_animation.color import GREEN
+from i2cdisplaybus import I2CDisplayBus
 
 # this firmware assumes you have a means of connecting
 # a high voltage relay to GPIO pins in full isolation of
@@ -22,9 +27,15 @@ AMBER_TIME = 3
 GREEN_PIN = board.D10
 GREEN_TIME = 30
 
+DISPLAY_WIDTH = 128
+DISPLAY_HEIGHT = 64
+DISPLAY_BORDER = 2
+
 
 class TrafficSignal:
     def __init__(self):
+        self.setup_oled()
+
         # the phases are cycled through with the onboard
         # RGB neopixel if you have no GPIO pins wired up
         self.pixels = neopixel.NeoPixel(
@@ -46,6 +57,30 @@ class TrafficSignal:
         self.power_light = digitalio.DigitalInOut(board.LED)
         self.power_light.direction = digitalio.Direction.OUTPUT
 
+    def setup_oled(self):
+        displayio.release_displays()
+        i2c = board.I2C()
+        display_bus = I2CDisplayBus(i2c, device_address=0x3C)
+
+        display = adafruit_displayio_sh1107.SH1107(
+            display_bus, width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT
+        )
+        self.screen = displayio.Group()
+        display.root_group = self.screen
+
+        # drop an empty label onto the screen stack so it is popped off the
+        # first time set_text is called
+        self.screen.append(
+            label.Label(terminalio.FONT, text="", scale=6, color=0xFFFFFF, x=50, y=32)
+        )
+
+    def set_text(self, text):
+        self.screen.pop()
+        text_area = label.Label(
+            terminalio.FONT, text=text, scale=6, color=0xFFFFFF, x=50, y=32
+        )
+        self.screen.append(text_area)
+
     def all_lights_off(self):
         print("ALL OFF")
         self.red_light.value = False
@@ -54,12 +89,15 @@ class TrafficSignal:
 
     def red_light_on(self):
         self.red_light.value = True
+        self.set_text("R")
 
     def amber_light_on(self):
         self.amber_light.value = True
+        self.set_text("Y")
 
     def green_light_on(self):
         self.green_light.value = True
+        self.set_text("G")
 
     def run_phase(self, name, color, sleep_time, on_fn):
         self.pixels[0] = color
