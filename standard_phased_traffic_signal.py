@@ -118,6 +118,15 @@ class TrafficSignal:
         on_fn()
         time.sleep(sleep_time)
 
+    def run_startup(self):
+        self.pixels[0] = RED
+        self.all_lights_off()
+        self.red_light_on()
+
+        for i in range(10, 0, -1):
+            self.set_text(str(i))
+            time.sleep(1)
+
     def run_phases(self):
         print("\n---")
         print("STARTING PHASE LOOP")
@@ -126,10 +135,11 @@ class TrafficSignal:
         self.power_light.value = True
 
         while True:
-            self.run_phase("RED", RED, RED_TIME, self.red_light_on)
             self.run_phase("GREEN", GREEN, GREEN_TIME, self.green_light_on)
             self.run_phase("AMBER", AMBER, AMBER_TIME, self.amber_light_on)
+            self.run_phase("RED", RED, RED_TIME, self.red_light_on)
 
 
 traffic_signal = TrafficSignal()
+traffic_signal.run_startup()
 traffic_signal.run_phases()
