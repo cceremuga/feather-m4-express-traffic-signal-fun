@@ -9,6 +9,7 @@ from adafruit_display_text import label
 from adafruit_led_animation.color import RED
 from adafruit_led_animation.color import AMBER
 from adafruit_led_animation.color import GREEN
+from adafruit_led_animation.color import WHITE
 from i2cdisplaybus import I2CDisplayBus
 
 # this firmware assumes you have a means of connecting
@@ -21,7 +22,7 @@ from i2cdisplaybus import I2CDisplayBus
 # you can simulate a high voltage traffic signal with
 # low voltage LEDs correctly wired to the GPIO pins
 RED_PIN = board.D12
-RED_TIME = 35
+RED_TIME = 33
 AMBER_PIN = board.D11
 AMBER_TIME = 3
 GREEN_PIN = board.D10
@@ -31,15 +32,23 @@ DISPLAY_WIDTH = 128
 DISPLAY_HEIGHT = 64
 DISPLAY_BORDER = 2
 
+STARTUP_TIME = 5
+
 
 class TrafficSignal:
     def __init__(self):
         self.setup_oled()
 
+        # m4 express CAN boards require manual power management
+        # for the onboard neopixel
+        neopixel_power = digitalio.DigitalInOut(board.NEOPIXEL_POWER)
+        neopixel_power.direction = digitalio.Direction.OUTPUT
+        neopixel_power.value = True
+
         # the phases are cycled through with the onboard
         # RGB neopixel if you have no GPIO pins wired up
         self.pixels = neopixel.NeoPixel(
-            board.NEOPIXEL, 1, brightness=0.1, auto_write=True, bpp=3
+            board.NEOPIXEL, 1, brightness=0.2, auto_write=True, bpp=3
         )
 
         self.red_light = digitalio.DigitalInOut(RED_PIN)
@@ -56,6 +65,7 @@ class TrafficSignal:
         # running
         self.power_light = digitalio.DigitalInOut(board.LED)
         self.power_light.direction = digitalio.Direction.OUTPUT
+        self.power_light.value = True
 
     def setup_oled(self):
         displayio.release_displays()
@@ -116,14 +126,18 @@ class TrafficSignal:
         self.all_lights_off()
         print(f"{name} ON")
         on_fn()
-        time.sleep(sleep_time)
+
+        time.sleep(1)
+
+        for i in range(sleep_time - 1, 0, -1):
+            self.set_text(str(i))
+            time.sleep(1)
 
     def run_startup(self):
-        self.pixels[0] = RED
         self.all_lights_off()
-        self.red_light_on()
+        self.pixels[0] = WHITE
 
-        for i in range(10, 0, -1):
+        for i in range(STARTUP_TIME, 0, -1):
             self.set_text(str(i))
             time.sleep(1)
 
@@ -131,8 +145,6 @@ class TrafficSignal:
         print("\n---")
         print("STARTING PHASE LOOP")
         print("---\n")
-
-        self.power_light.value = True
 
         while True:
             self.run_phase("GREEN", GREEN, GREEN_TIME, self.green_light_on)
