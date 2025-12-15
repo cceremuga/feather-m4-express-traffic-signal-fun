@@ -87,21 +87,21 @@ class TrafficSignal:
         # ensure the position is not negative
         if x_position < DISPLAY_BORDER:
             x_position = DISPLAY_BORDER
-
         y_position = DISPLAY_HEIGHT // 2
 
-        if len(self.screen) > 0:
-            self.screen.pop()
+        if len(self.screen) == 0:
+            text_area = label.Label(
+                terminalio.FONT,
+                text=text,
+                scale=scale,
+                color=0xFFFFFF,
+                x=x_position,
+                y=y_position,
+            )
+            self.screen.append(text_area)
 
-        text_area = label.Label(
-            terminalio.FONT,
-            text=text,
-            scale=scale,
-            color=0xFFFFFF,
-            x=x_position,
-            y=y_position,
-        )
-        self.screen.append(text_area)
+        self.screen[0].text = text
+        self.screen[0].x = x_position
 
     def all_lights_off(self):
         print("ALL OFF")
